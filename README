@@ -1,85 +1,34 @@
 Varnish Geo-IP VCL
 ===========================
 
-Last updated: 28/05/2013
+Original by:
 	Cosimo Streppone <cosimo@opera.com>
 	Opera Software ASA
+   https://github.com/cosimo/varnish-geoip
 
-Here you will find a VCL config file for Varnish (http://varnish-cache.org)
-This VCL will transparently add a HTTP request header with Geo-IP information
-depending on the client IP address that made the request.
+Modified for private use.
 
-*** WARNING ***
-This VCL consists of C code. Your Varnish might explode. YMMV.
-Don't use it in production if you don't know what you're doing.
-We are using it in production, but we _don't_ know what we're doing :).
+Description
+===========================
 
-Why would you want this?
-------------------------
-So your backend application can just read a HTTP header and figure out
-where the client comes from, city, country and latitude/longitude.
-Of course this doesn't come for free. You need the city edition of Geo-IP.
+This module looksup the country and the city of a client.
+The country gets stored in "X-Geo-IP-Country".
+The city in "X-Geo-IP-City".
 
-The rewritten header is "X-Geo-IP".
+You can use this module to create custom cache hashs. For
+example to cache content depending on the country or the
+city.
 
-X-Geo-IP header content
------------------------
+Example
+===========================
 
-the `X-Geo-IP` header will differ depending on which function
-you decide to apply, and what GeoIP database you are using, Country or City
-edition.
+ sub vcl_recv {
+    C{
+       vcl_geoip_set_header(sp);
+    }C
+ }
 
-In case of simple country lookup, you will have:
+ sub vcl_hash {
+    hash_data(req.http.X-Geo-IP-Country);
+ }
 
-    X-Geo-IP: country:US
-
-whereas a failed lookup will return `country:A6`. That is an internal
-convention we adopted, of course YMMV.
-
-In case of City database, the header will look like:
-
-    X-Geo-IP: city:Rome, country:IT, lat:44.2134, lon:12.241, ip:1.2.3.4
-
-(numbers are made up), while in the lookup failed case, you will have:
-
-    X-Geo-IP: city:, country:A6, lat:0.0, lon:0.0, ip:1.2.3.4
-
-The invalid/internal IP case is covered by the geoip library itself, so
-it should be reported as unknown IP.
-
-Requirements
-------------
-
-- gcc, make
-- a recent perl, with `prove'
-
-Instructions
--------------
-
-1) Run 'make && make test'
-   You should see "All tests successful" at the end of the execution
-
-2) Install the generated geoip.vcl in /etc/varnish/
-
-3) At the top of your main VCL file, add the following line:
-
-     include "/etc/varnish/geoip.vcl"
-
-   and then in your vcl_recv() add:
-
-     C{
-     vcl_geoip_set_header(sp);
-     }C
-
-4) If you run Debian, look here:
-
-   http://www.streppone.it/cosimo/blog/2011/11/how-to-start-up-varnish-with-a-custom-cc_command-on-debian/
-
-   for instructions on how to specify a custom "cc_command" in
-   the Varnish init script.
-
-5) Restart Varnish
-
-6) ?
-
-7) Profit !!
